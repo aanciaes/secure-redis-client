@@ -6,6 +6,8 @@ Simulated client of the secure redis proxy. This client is a tester built with [
 
 On terminal run `sbt gatling:test`
 
+or
+
 On intelliJ tun task `gatling:test`
 
 ## Check Report
