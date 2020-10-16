@@ -1,6 +1,7 @@
-package change.me
+package anciaes.secure.redis.client
 
 import io.gatling.core.Predef._
+import io.gatling.core.feeder.FileBasedFeederBuilder
 import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
@@ -11,10 +12,12 @@ class SecureRedisClient extends Simulation {
 
   private val baseUrl = "https://localhost:8443"
   private val contentType = "application/json"
-  private val endpoint = "/redis/foo"
+  private val endpoint = "/redis"
 
   private val authServerTokenUrl = "https://ns31249243.ip-51-210-0.eu:8678/auth/realms/thesis-realm/protocol/openid-connect/token"
   private val urlEncodedHeader = "application/x-www-form-urlencoded"
+
+  val jsonFileFeeder: FileBasedFeederBuilder[Any] = jsonFile("mock-data.json")
 
   val httpProtocol: HttpProtocolBuilder = http
     .baseUrl(baseUrl)
@@ -36,14 +39,26 @@ class SecureRedisClient extends Simulation {
         .check(status is 200)
         .check(jmesPath("access_token").saveAs("accessToken"))
     )
-    .during(60) {
-    //.repeat(1) {
-    exec(
-      http("Redis Get Requests")
-        .get(endpoint)
-        //.header("Authorization", """"Bearer ${accessToken}"""")
-    ).pause(5 milliseconds)
-  }
+    //.during(60) {
+    .repeat(3) {
+      feed(jsonFileFeeder.queue)
+        .exec(
+          http("Redis Set Requests")
+            .post(endpoint)
+            .body(ElFileBody("set-body.json")).asJson
+            //.header("Authorization", """Bearer ${accessToken}""")
+            .check(status is 201)
+        ).pause(5 milliseconds)
+    }.pause(5)
+    .repeat(10) {
+      feed(jsonFileFeeder.random)
+        .exec(
+          http("Redis Get Requests")
+            .get(endpoint + """/${key}""").disableUrlEncoding
+            //.header("Authorization", """"Bearer ${accessToken}"""")
+            .check(status is 200)
+        ).pause(5 milliseconds)
+    }
 
   setUp(scn.inject(atOnceUsers(1))).protocols(httpProtocol)
 }
