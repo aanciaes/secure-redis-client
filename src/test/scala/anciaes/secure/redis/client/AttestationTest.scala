@@ -5,12 +5,9 @@ import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
 
-import scala.concurrent.duration._
 import scala.util.Random
 
-class GetSetTest extends Simulation {
-
-  private var counter = 0
+class AttestationTest extends Simulation{
 
   private val baseUrl = "https://localhost:8443"
   private val contentType = "application/json"
@@ -19,13 +16,9 @@ class GetSetTest extends Simulation {
   private val authServerTokenUrl = "https://ns31249243.ip-51-210-0.eu:8678/auth/realms/thesis-realm/protocol/openid-connect/token"
   private val urlEncodedHeader = "application/x-www-form-urlencoded"
 
-  private val numberOfSets = 100000
-  private val numberOfGets = 100000
-  private val keySizeBytes = 200
-  private val valueSizeBytes = 1000
-  private val keyPrefix = Random.alphanumeric.take(keySizeBytes).mkString
-  private val randomSetDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("key" -> (s"$keyPrefix-" + increment()), "value" -> Random.alphanumeric.take(valueSizeBytes).mkString))
-  private val randomGetDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("key" -> (s"$keyPrefix-" + (Random.nextInt(counter) + 1))))
+  private val numberOfAttestationRequest = 100
+
+  private val randomNonceDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("nonce" -> Random.nextInt(100000000).toString))
 
   val httpProtocol: HttpProtocolBuilder = http
     .baseUrl(baseUrl)
@@ -34,7 +27,7 @@ class GetSetTest extends Simulation {
     .userAgentHeader("User-Agent: Gatling/2.0")
     .disableCaching
 
-  val scn: ScenarioBuilder = scenario("Redis Secure Proxy Tests")
+  val scn: ScenarioBuilder = scenario("Redis Attestation Tests")
     .exec(
       http("Auth Server Login")
         .post(authServerTokenUrl)
@@ -47,32 +40,16 @@ class GetSetTest extends Simulation {
         .check(status is 200)
         .check(jmesPath("access_token").saveAs("accessToken"))
     )
-    //.during(60) {
-    .repeat(numberOfSets) {
-      // feed(jsonFileFeeder.queue)
-      feed(randomSetDataFeeder)
+    .repeat(numberOfAttestationRequest) {
+      feed(randomNonceDataFeeder)
         .exec(
-          http("Redis Set Requests")
-            .post(endpoint)
-            .body(ElFileBody("set-body.json")).asJson
-            //.header("Authorization", """Bearer ${accessToken}""")
-            .check(status is 201)
-        )
-    }.pause(5)
-    .repeat(numberOfGets) {
-      feed(randomGetDataFeeder)
-        .exec(
-          http("Redis Get Requests")
-            .get(endpoint + """/${key}""").disableUrlEncoding
+          http("Proxy Attestation Requests")
+            .get("/attest").disableUrlEncoding
             //.header("Authorization", """"Bearer ${accessToken}"""")
+            .queryParam("nonce", """${nonce}""")
             .check(status is 200)
         )
     }
 
   setUp(scn.inject(atOnceUsers(1))).protocols(httpProtocol)
-
-  def increment(): Int = {
-    counter += 1
-    counter
-  }
 }
