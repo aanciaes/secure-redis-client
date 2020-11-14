@@ -1,14 +1,16 @@
 package anciaes.secure.redis.client
 
 import io.gatling.core.Predef._
-import io.gatling.core.feeder.FileBasedFeederBuilder
 import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
 
 import scala.concurrent.duration._
+import scala.util.Random
 
-class SecureRedisClient extends Simulation {
+class GetSetTest extends Simulation {
+
+  private var counter = 0
 
   private val baseUrl = "https://localhost:8443"
   private val contentType = "application/json"
@@ -17,7 +19,13 @@ class SecureRedisClient extends Simulation {
   private val authServerTokenUrl = "https://ns31249243.ip-51-210-0.eu:8678/auth/realms/thesis-realm/protocol/openid-connect/token"
   private val urlEncodedHeader = "application/x-www-form-urlencoded"
 
-  val jsonFileFeeder: FileBasedFeederBuilder[Any] = jsonFile("mock-data.json")
+  private val numberOfSets = 100000
+  private val numberOfGets = 100000
+  private val keySizeBytes = 200
+  private val valueSizeBytes = 1000
+  private val keyPrefix = Random.alphanumeric.take(keySizeBytes).mkString
+  private val randomSetDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("key" -> (s"$keyPrefix-" + increment()), "value" -> Random.alphanumeric.take(valueSizeBytes).mkString))
+  private val randomGetDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("key" -> (s"$keyPrefix-" + (Random.nextInt(counter) + 1))))
 
   val httpProtocol: HttpProtocolBuilder = http
     .baseUrl(baseUrl)
@@ -40,25 +48,31 @@ class SecureRedisClient extends Simulation {
         .check(jmesPath("access_token").saveAs("accessToken"))
     )
     //.during(60) {
-    .repeat(3) {
-      feed(jsonFileFeeder.queue)
+    .repeat(numberOfSets) {
+      // feed(jsonFileFeeder.queue)
+      feed(randomSetDataFeeder)
         .exec(
           http("Redis Set Requests")
             .post(endpoint)
             .body(ElFileBody("set-body.json")).asJson
             //.header("Authorization", """Bearer ${accessToken}""")
             .check(status is 201)
-        ).pause(5 milliseconds)
-    }.pause(5)
-    .repeat(10) {
-      feed(jsonFileFeeder.random)
+        )
+    }.pause(5 seconds)
+    .repeat(numberOfGets) {
+      feed(randomGetDataFeeder)
         .exec(
           http("Redis Get Requests")
             .get(endpoint + """/${key}""").disableUrlEncoding
             //.header("Authorization", """"Bearer ${accessToken}"""")
             .check(status is 200)
-        ).pause(5 milliseconds)
+        )
     }
 
   setUp(scn.inject(atOnceUsers(1))).protocols(httpProtocol)
+
+  def increment(): Int = {
+    counter += 1
+    counter
+  }
 }
