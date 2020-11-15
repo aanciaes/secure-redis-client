@@ -5,24 +5,24 @@ import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 class GetSetTest extends Simulation {
 
   private var counter = 0
 
-  private val baseUrl = "https://localhost:8443"
+  private val baseUrl = "https://ns31249243.ip-51-210-0.eu:8777"
   private val contentType = "application/json"
   private val endpoint = "/redis"
 
   private val authServerTokenUrl = "https://ns31249243.ip-51-210-0.eu:8678/auth/realms/thesis-realm/protocol/openid-connect/token"
   private val urlEncodedHeader = "application/x-www-form-urlencoded"
 
-  private val numberOfSets = 100000
-  private val numberOfGets = 100000
-  private val keySizeBytes = 200
-  private val valueSizeBytes = 1000
+  private val setDurationMinutes = 10
+  private val getDurationMinutes = 10
+  private val keySizeBytes = 20
+  private val valueSizeBytes = 100
   private val keyPrefix = Random.alphanumeric.take(keySizeBytes).mkString
   private val randomSetDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("key" -> (s"$keyPrefix-" + increment()), "value" -> Random.alphanumeric.take(valueSizeBytes).mkString))
   private val randomGetDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("key" -> (s"$keyPrefix-" + (Random.nextInt(counter) + 1))))
@@ -47,24 +47,26 @@ class GetSetTest extends Simulation {
         .check(status is 200)
         .check(jmesPath("access_token").saveAs("accessToken"))
     )
-    //.during(60) {
-    .repeat(numberOfSets) {
+    .during(setDurationMinutes minutes) {
+    //.repeat(numberOfSets) {
       // feed(jsonFileFeeder.queue)
       feed(randomSetDataFeeder)
         .exec(
           http("Redis Set Requests")
             .post(endpoint)
             .body(ElFileBody("set-body.json")).asJson
-            //.header("Authorization", """Bearer ${accessToken}""")
+            .header("Authorization", """Bearer ${accessToken}""")
             .check(status is 201)
         )
-    }.pause(5)
-    .repeat(numberOfGets) {
+    }
+    .pause(5)
+    .during(getDurationMinutes minutes) {
+    //.repeat(numberOfGets) {
       feed(randomGetDataFeeder)
         .exec(
           http("Redis Get Requests")
             .get(endpoint + """/${key}""").disableUrlEncoding
-            //.header("Authorization", """"Bearer ${accessToken}"""")
+            .header("Authorization", """Bearer ${accessToken}""")
             .check(status is 200)
         )
     }
