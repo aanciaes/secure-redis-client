@@ -5,18 +5,19 @@ import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
 
+import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 class AttestationTest extends Simulation{
 
-  private val baseUrl = "https://localhost:8443"
+  private val baseUrl = "https://ns31249243.ip-51-210-0.eu:8777"
   private val contentType = "application/json"
-  private val endpoint = "/redis"
 
   private val authServerTokenUrl = "https://ns31249243.ip-51-210-0.eu:8678/auth/realms/thesis-realm/protocol/openid-connect/token"
   private val urlEncodedHeader = "application/x-www-form-urlencoded"
 
-  private val numberOfAttestationRequest = 100
+  // private val numberOfAttestationRequest = 100
+  private val durationOfAttestationRequestMinutes = 10
 
   private val randomNonceDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("nonce" -> Random.nextInt(100000000).toString))
 
@@ -40,12 +41,13 @@ class AttestationTest extends Simulation{
         .check(status is 200)
         .check(jmesPath("access_token").saveAs("accessToken"))
     )
-    .repeat(numberOfAttestationRequest) {
+    //.repeat(numberOfAttestationRequest) {
+    .during(durationOfAttestationRequestMinutes minutes) {
       feed(randomNonceDataFeeder)
         .exec(
           http("Proxy Attestation Requests")
             .get("/attest").disableUrlEncoding
-            //.header("Authorization", """"Bearer ${accessToken}"""")
+            .header("Authorization", """Bearer ${accessToken}""")
             .queryParam("nonce", """${nonce}""")
             .check(status is 200)
         )

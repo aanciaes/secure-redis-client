@@ -74,6 +74,14 @@ while [ $index -lt $samples ] || [ $samples == -1 ]; do
 
 	timestamp=$(date +%s%N)
 
+  for i in "${container_ids_array[@]}"; do
+    top_command="docker exec $i top -b -n 1"
+    top_output=$(eval "$top_command")
+    echo "$timestamp" >> "$i-top-stats.txt"
+    echo "$top_output" >> "$i-top-stats.txt"
+    echo "----------------------------" >> "$i-top-stats.txt"
+	done
+
 	eval $command | while IFS= read -r output_line ; do
 		output_line+=",$timestamp"
 		echo "$output_line" >> "$output_file"

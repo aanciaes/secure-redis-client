@@ -38,21 +38,21 @@ print_usage() {
 }
 
 run_init_assertions() {
-	if [ -z "$image" ] || [ -z "$url" ]; then
-		print_usage ;
-	fi
+  if [ -z "$name" ] || [ -z "$image" ] || [ -z "$url" ]; then
+    print_usage ;
+  fi
 }
 
 build_docker_command () {
   if [ -n "$name" ]; then
-		docker_command+=" --name $name" ;
-	fi
+    docker_command+=" --name $name" ;
+  fi
 
-	if [ -n "$device" ]; then
-		docker_command+=" --device=$name" ;
-	fi
+  if [ -n "$device" ]; then
+    docker_command+=" --device=$device" ;
+  fi
 
-	if [ ${#ports[@]} -gt 1 ]; then
+  if [ ${#ports[@]} -gt 1 ]; then
     ports_command=$(join_by " -p " ${ports[@]})
     docker_command+=" -p $ports_command"
   fi
@@ -66,31 +66,29 @@ build_docker_command () {
 }
 
 while getopts 'p:d:e:n:i:u:hm' option; do
-	case "${option}" in
-		h) print_usage ;;
-		m) date_command="gdate +%s%N";;
+  case "${option}" in
+    h) print_usage ;;
+    m) date_command="gdate +%s%N";;
     n) name=${OPTARG} ;;
     p) ports+=(${OPTARG}) ;;
-    p) device=${OPTARG} ;;
+    d) device=${OPTARG} ;;
     e) environment+=(${OPTARG}) ;;
     i) image=${OPTARG} ;;
     u) url=${OPTARG} ;;
-		*) print_usage ;;
-	esac
+    *) print_usage ;;
+  esac
 done
 
 run_init_assertions ;
 
 build_docker_command ;
 
-echo $docker_command
-
 eval $docker_command
 
 initial_time=$($date_command);
 
 until $(curl -k --output /dev/null --silent --fail $url); do
-  :
+	:
 done
 
 final_time=$($date_command);
@@ -98,3 +96,5 @@ startup_time=$(($final_time - initial_time))
 
 # echo $time
 echo "Container took $startup_time ns to become ready."
+
+eval "docker stop $name" 
