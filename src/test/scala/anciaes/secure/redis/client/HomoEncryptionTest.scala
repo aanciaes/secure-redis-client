@@ -5,12 +5,14 @@ import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
 
+import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 class HomoEncryptionTest extends Simulation {
 
   private var counter = 0
 
+  // private val baseUrl = "https://ns31249243.ip-51-210-0.eu:8777"
   private val baseUrl = "https://localhost:8443"
   private val contentType = "application/json"
   private val endpoint = "/redis"
@@ -19,15 +21,18 @@ class HomoEncryptionTest extends Simulation {
   private val urlEncodedHeader = "application/x-www-form-urlencoded"
 
   // Insert data - Not relevant to this test
-  private val numberOfSets = 100
+  private val numberOfSets = 50
   private val keySizeBytes = 200
   private val valueLimit = 100000
   //
 
-  private val numberOfSums = 10
-  private val numberOfMultiplications = 10
-  private val sumLimit = 10000
-  private val multiplicationLimit = 9
+  // private val numberOfSums = 10
+  // private val numberOfMultiplications = 10
+
+  private val durationOfSumsMinutes = 2
+  private val durationOfMultiplicationsMinutes = 10
+  private val sumLimit = 100000
+  private val multiplicationLimit = 5
 
   private val keyPrefix = Random.alphanumeric.take(keySizeBytes).mkString
   private val randomSetDataFeeder: Iterator[Map[String, String]] = Iterator.continually(Map("key" -> (s"$keyPrefix-" + increment()), "value" -> Random.nextInt(valueLimit).toString))
@@ -66,27 +71,27 @@ class HomoEncryptionTest extends Simulation {
         )
     }
     .pause(10)
-    .repeat(numberOfSums) {
+    .during(durationOfSumsMinutes minutes) {
       feed(randomSumDataFeeder)
         .exec(
           http("Redis Sum Requests")
             .put(endpoint + """/${key}/sum""").disableUrlEncoding
-            //.header("Authorization", """"Bearer ${accessToken}"""")
+            //.header("Authorization", """Bearer ${accessToken}""")
             .queryParam("sum", """${sum}""")
             .check(status is 204)
         )
     }
-    .pause(10)
-    .repeat(numberOfMultiplications) {
+    /*.pause(10)
+    .during(durationOfMultiplicationsMinutes minutes) {
       feed(randomMultiplicationDataFeeder)
         .exec(
           http("Redis Multiplication Requests")
             .put(endpoint + """/${key}/mult""").disableUrlEncoding
-            //.header("Authorization", """"Bearer ${accessToken}"""")
+            .header("Authorization", """Bearer ${accessToken}""")
             .queryParam("mult", """${mult}""")
             .check(status is 204)
         )
-    }
+    }*/
 
   setUp(scn.inject(atOnceUsers(1))).protocols(httpProtocol)
 

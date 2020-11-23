@@ -19,8 +19,8 @@ class GetSetTest extends Simulation {
   private val authServerTokenUrl = "https://ns31249243.ip-51-210-0.eu:8678/auth/realms/thesis-realm/protocol/openid-connect/token"
   private val urlEncodedHeader = "application/x-www-form-urlencoded"
 
-  private val setDurationMinutes = 10
-  private val getDurationMinutes = 10
+  private val setDurationMinutes = 5
+  private val getDurationMinutes = 5
   private val keySizeBytes = 20
   private val valueSizeBytes = 100
   private val keyPrefix = Random.alphanumeric.take(keySizeBytes).mkString
@@ -49,7 +49,6 @@ class GetSetTest extends Simulation {
     )
     .during(setDurationMinutes minutes) {
     //.repeat(numberOfSets) {
-      // feed(jsonFileFeeder.queue)
       feed(randomSetDataFeeder)
         .exec(
           http("Redis Set Requests")
