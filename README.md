@@ -23,12 +23,12 @@ Bash script that records docker container stats:
 ```
 usage: $ docker-stats-recorder -c <container_id> [options]
 options:
-    -h                                  Show help (this screen)
-    -c <container_id>,<container_id>    Indicate container to record
-    -o <output_name>                    Indicate where to store stats
-    -f <csv>                            Indicate the format of stored stats
-    -i <interval seconds>               Interval between samples
-    -s <number of samples>              Number of samples to recover. Set -1 to infinite
+    -h                                Show help (this screen)
+    -c <container_id>,<container_id>  Indicate container to record
+    -o <output_dir>                   Indicate directory where stats will be stored
+    -i <interval seconds>             Interval between samples
+    -s <number of samples>            Number of samples to recover. Set -1 to infinite
+    -r <user:password@host:port>      Redis host to recover memory information
 ```
 
 ## Docker StartUp Recorder

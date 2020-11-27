@@ -11,7 +11,13 @@ output_dir="./";
 interval=5
 samples=1
 command='docker stats --no-stream --format "{{.ID}},{{.Name}},{{.CPUPerc}},{{.MemPerc}},{{.MemUsage}},{{.NetIO}},{{.BlockIO}},{{.PIDs}}"'
-redis_cli_command=
+
+redis_argument=;
+redis_user=;
+redis_password=;
+redis_host=;
+redis_port=;
+redis_cli_output_file=;
 
 function join_by { local d=$1; shift; local f=$1; shift; printf %s "$f" "${@/#/$d}"; }
 
@@ -42,6 +48,24 @@ run_init_assertions() {
 		echo "timestamp,container_id,pid,vsz,rss,comm" > "$output_dir/$ps_output_file"
 	fi
 
+
+  if [ ! -z "$redis_argument" ]; then
+    IFS='@' read -ra redis_options <<< "$redis_argument"
+    IFS=':' read -ra redis_user_pwd <<< "${redis_options[0]}"
+    IFS=':' read -ra redis_host_port <<< "${redis_options[1]}"
+
+    redis_user=${redis_user_pwd[0]}
+    redis_password=${redis_user_pwd[1]}
+    redis_host=${redis_host_port[0]}
+    redis_port=${redis_host_port[1]}
+  fi
+
+
+  redis_cli_output_file="redis_info_stats.csv"
+	if [ ! -f "${redis_cli_output_file}" ] || [ ! -s "${redis_cli_output_file}" ]; then
+		echo "timestamp,used_memory,used_memory_rss,used_memory_dataset" > "$output_dir/$redis_cli_output_file"
+	fi
+
 	if [ $samples == -1 ]; then 
 		echo "--- Recording infinite samples with $interval seconds between them ---"
 	else
@@ -55,23 +79,51 @@ print_usage() {
   echo "usage: $ docker-stats-recorder -c <container_id> [options]"
   echo " "
   echo "options:"
-  echo "-h                      			Show help (this screen)"
-  echo "-c <container_id>,<container_id>    Indicate container to record"
-  echo "-o <output_dir>        			  Indicate directory where stats will be stored"
-  echo "-f <csv>     	        			  Indicate the format of stored stats"
-  echo "-i <interval seconds>   			Interval between samples"
-  echo "-s <number of samples>  			Number of samples to recover. Set -1 to infinite"
+  echo "-h                                Show help (this screen)"
+  echo "-c <container_id>,<container_id>  Indicate container to record"
+  echo "-o <output_dir>                   Indicate directory where stats will be stored"
+  echo "-i <interval seconds>             Interval between samples"
+  echo "-s <number of samples>            Number of samples to recover. Set -1 to infinite"
+  echo "-r <user:password@host:port>      Redis host to recover memory information"
 
   exit 0
 }
 
-while getopts c:o:i:s: option; do
+process_redis_cli_command() {
+  timestamp=$1
+
+  redis_cli_command="redis-cli -h $redis_host -p $redis_port --tls --cacert thesis-prod-ssl/ca/thesis-ca.crt --key thesis-prod-ssl/redis-client/thesis-redis-cli.key --cert thesis-prod-ssl/redis-client/thesis-redis-cli.crt --user $redis_user -a '$redis_password' -c info memory"
+  redis_cli_output=$(eval "$redis_cli_command")
+  redis_cli_output=$(echo "$redis_cli_output" | tr -d '\r')
+
+  while IFS= read -r line; do
+    if [[ "$line" == used_memory:* ]]; then
+      IFS=':' read -ra output_lin_separated <<< "$line"
+      used_memory=${output_lin_separated[1]}
+    fi
+
+    if [[ "$line" == used_memory_rss:* ]]; then
+      IFS=':' read -ra output_lin_separated <<< "$line"
+      used_memory_rss="${output_lin_separated[1]}"
+    fi
+
+    if [[ "$line" == used_memory_dataset:* ]]; then
+      IFS=':' read -ra output_lin_separated <<< "$line"
+      used_memory_dataset="${output_lin_separated[1]}"
+    fi
+  done <<< "$redis_cli_output"
+
+	echo "$timestamp,$used_memory,$used_memory_rss,$used_memory_dataset" >> "$output_dir/$redis_cli_output_file"
+}
+
+while getopts c:o:i:s:r: option; do
 	case "${option}" in
 		h) print_usage ;;
 		c) container_ids=${OPTARG};;
 		o) output_dir=${OPTARG};;
 		i) interval=${OPTARG};;
 		s) samples=${OPTARG};;
+    r) redis_argument=${OPTARG};;
 		*) print_usage ;;
 	esac
 done
@@ -98,6 +150,10 @@ while [ $index -lt $samples ] || [ $samples == -1 ]; do
 		output_line+=",$timestamp"
 		echo "$output_line" >> "$output_dir/$output_file"
 	done
+
+  if [ ! -z "$redis_argument" ]; then
+    process_redis_cli_command $timestamp ;
+  fi
 	
 	((index++))
 
