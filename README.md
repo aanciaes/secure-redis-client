@@ -1,5 +1,6 @@
 # Secure Redis Client
 
+![GitHub MasterThesis](https://img.shields.io/badge/MasterThesis-Delivered-brightgreen)
 [![GitHub release](https://img.shields.io/github/release/aanciaes/secure-redis-client.svg)](https://github.com/aanciaes/secure-redis-client/releases/)
 [![GitHub issues](https://img.shields.io/github/issues/aanciaes/secure-redis-client.svg)](https://github.com/aanciaes/secure-redis-client/issues/)
 
