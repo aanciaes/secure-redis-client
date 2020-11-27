@@ -11,6 +11,7 @@ output_dir="./";
 interval=5
 samples=1
 command='docker stats --no-stream --format "{{.ID}},{{.Name}},{{.CPUPerc}},{{.MemPerc}},{{.MemUsage}},{{.NetIO}},{{.BlockIO}},{{.PIDs}}"'
+redis_cli_command=
 
 function join_by { local d=$1; shift; local f=$1; shift; printf %s "$f" "${@/#/$d}"; }
 

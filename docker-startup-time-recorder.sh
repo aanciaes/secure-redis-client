@@ -17,6 +17,8 @@ initial_time=;
 final_time=;
 startup_time=;
 
+docker_container_id=;
+
 function join_by { local d=$1; shift; local f=$1; shift; printf %s "$f" "${@/#/$d}"; }
 
 print_usage() {
@@ -38,7 +40,7 @@ print_usage() {
 }
 
 run_init_assertions() {
-  if [ -z "$name" ] || [ -z "$image" ] || [ -z "$url" ]; then
+  if [ -z "$image" ] || [ -z "$url" ]; then
     print_usage ;
   fi
 }
@@ -65,6 +67,15 @@ build_docker_command () {
   docker_command+=" $image"
 }
 
+trapSigInt () {
+  printf "\rCleaning up and exiting...\n"
+  eval "docker stop $docker_container_id"
+  echo "Done!"
+  exit 0
+}
+
+trap trapSigInt SIGINT
+
 while getopts 'p:d:e:n:i:u:hm' option; do
   case "${option}" in
     h) print_usage ;;
@@ -83,7 +94,10 @@ run_init_assertions ;
 
 build_docker_command ;
 
-eval $docker_command
+# eval $docker_command
+docker_container_id=$(eval "$docker_command")
+echo "$docker_container_id"
+echo "Waiting for the container to get ready..."
 
 initial_time=$($date_command);
 
@@ -97,4 +111,6 @@ startup_time=$(($final_time - initial_time))
 # echo $time
 echo "Container took $startup_time ns to become ready."
 
-eval "docker stop $name" 
+echo "Stopping and removing container..."
+eval "docker stop $docker_container_id"
+echo "Done!"
