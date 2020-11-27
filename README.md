@@ -1,7 +1,7 @@
 # Secure Redis Client
 
 [![GitHub release](https://img.shields.io/github/release/aanciaes/secure-redis-client.svg)](https://github.com/aanciaes/secure-redis-client/releases/)
-[![GitHub issues](https://img.shields.io/github/issues/aanciaes/secure-redis-client.svg)](https://github.com/aanciaes/secure-redis-client/secure-redis-client/issues/)
+[![GitHub issues](https://img.shields.io/github/issues/aanciaes/secure-redis-client.svg)](https://github.com/aanciaes/secure-redis-client/issues/)
 
 Simulated client of the secure redis proxy. This client is a tester built with [gatling](https://gatling.io) framework and written in Scala to analise performance metrics of [Secure Redis Proxy](https://github.com/aanciaes/secure-redis-proxy) and [Secure Redis Container](https://github.com/aanciaes/secure-redis-container) thesis different configurations.
 
