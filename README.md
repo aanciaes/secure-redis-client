@@ -1,14 +1,17 @@
 # Secure Redis Client
 
+[![GitHub release](https://img.shields.io/github/release/aanciaes/secure-redis-client.svg)](https://github.com/aanciaes/secure-redis-client/releases/)
+[![GitHub issues](https://img.shields.io/github/issues/aanciaes/secure-redis-client.svg)](secure-redis-client/issues/)
+
 Simulated client of the secure redis proxy. This client is a tester built with [gatling](https://gatling.io) framework and written in Scala to analise performance metrics of [Secure Redis Proxy](https://github.com/aanciaes/secure-redis-proxy) and [Secure Redis Container](https://github.com/aanciaes/secure-redis-container) thesis different configurations.
 
 ## Run Performance Tests
 
-On terminal run `sbt gatling:test`
+On terminal run `sbt gatling:test` or `sbt "gatling:testOnly anciaes.secure.redis.client.SearchHomoEncryptionTest"`
 
 or
 
-On intelliJ tun task `gatling:test`
+On intelliJ run task `gatling:test` or `gatling:testOnly anciaes.secure.redis.client.SearchHomoEncryptionTest`
 
 ## Check Report
 
@@ -42,8 +45,8 @@ options:
     -m                              Set -m option if running on macos
     -n <name>                       Container name
     -p <port:port>                  Container ports. Repeatable
-    -e <environment>                Container rnvironment variable. Repeatable
+    -e <environment>                Container environment variable. Repeatable
     -d <device>                     Container device mount
     -i <image:tag>                  Container image to run
-    -u <protocol://host:port/url>   Container image to run
+    -u <protocol://host:port/url>   Service health url
 ```

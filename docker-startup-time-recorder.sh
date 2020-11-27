@@ -31,10 +31,10 @@ print_usage() {
   echo "-m                            Set -m option if running on macos"
   echo "-n <name>                     Container name"
   echo "-p <port:port>                Container ports. Repeatable"
-  echo "-e <environment>              Container rnvironment variable. Repeatable"
+  echo "-e <environment>              Container environment variable. Repeatable"
   echo "-d <device>                   Container device mount"
   echo "-i <image:tag>                Container image to run"
-  echo "-u <protocol://host:port/url> Container image to run"
+  echo "-u <protocol://host:port/url> Service health url"
 
   exit 0
 }
